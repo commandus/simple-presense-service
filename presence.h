@@ -10,9 +10,9 @@ public:
     Presence();
     virtual ~Presence();
     virtual bool get(PresenceItem &item) = 0;
-    virtual void set(const PresenceItem &item) = 0;
+    virtual void put(const PresenceItem &item) = 0;
 
-    std::size_t query(
+    unsigned int query(
         const struct sockaddr *addr,
         unsigned char *retBuf, std::size_t retBufSize,
         const unsigned char* buf, std::size_t bufSize

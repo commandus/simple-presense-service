@@ -11,7 +11,7 @@ bool MemPresence::get(
     return false;
 }
 
-void MemPresence::set(
+void MemPresence::put(
     const PresenceItem &item
 )
 {

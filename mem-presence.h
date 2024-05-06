@@ -12,7 +12,7 @@ public:
     MemPresence();
     virtual ~MemPresence();
     bool get(PresenceItem &item) override;
-    void set(const PresenceItem &item) override;
+    void put(const PresenceItem &item) override;
 };
 
 #endif //SIMPLE_PRESENSE_SERVICE_MEM_PRESENCE_H

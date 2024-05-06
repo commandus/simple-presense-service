@@ -88,18 +88,20 @@ static void onUDPRead(
 
         } else {
             unsigned char writeBuffer[WRITE_BUFFER_SIZE];
-            size_t sz = ((UVListener*) handle->loop->data)->presence->query(
+            unsigned int sz = ((UVListener*) handle->loop->data)->presence->query(
                 addr, writeBuffer, sizeof(writeBuffer),
                 (const unsigned char *) buf->base, bytesRead);
             if (sz > 0) {
                 uv_buf_t wrBuf = uv_buf_init((char *) writeBuffer, sz);
                 auto req = (uv_udp_send_t *) malloc(sizeof(uv_udp_send_t));
-                req->data = writeBuffer; // to free up if need it
-                uv_udp_send(req, handle, &wrBuf, 1, addr,
-                    [](uv_udp_send_t *req, int status) {
-                        if (req)
-                            free(req);
-                    });
+				if (req) {
+					req->data = writeBuffer; // to free up if need it
+					uv_udp_send(req, handle, &wrBuf, 1, addr,
+						[] (uv_udp_send_t* req, int status) {
+							if (req)
+								free(req);
+					});
+				}
             }
         }
     }
@@ -122,7 +124,7 @@ static void onReadTCP(
         sockaddr addr;
         int addrLen = sizeof(sockaddr);
         uv_tcp_getpeername((const uv_tcp_t *) client, &addr, &addrLen);
-        size_t sz = ((UVListener*) client->loop->data)->presence->query(
+        unsigned int sz = ((UVListener*) client->loop->data)->presence->query(
             &addr, writeBuffer, sizeof(writeBuffer),
             (const unsigned char *) buf->base, readCount
         );
@@ -172,7 +174,7 @@ static void onConnect(
  * @see https://habr.com/ru/post/340758/
  */
 UVListener::UVListener()
-	: status(CODE_OK), verbose(0), presence(new MemPresence)
+	: servaddr{}, verbose(0), presence(new MemPresence), status(CODE_OK)
 {
 	uv_loop_t *loop = uv_default_loop();
     loop->data = this;
