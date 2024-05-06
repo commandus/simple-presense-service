@@ -17,6 +17,9 @@ set(VERSION_INFO 1.0.0)
 
 project ("simple-presense-service" VERSION ${VERSION_INFO})
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	set(LIBUV LibUV)
 	set(LIBUVA $<IF:$<TARGET_EXISTS:libuv::uv_a>,libuv::uv_a,uv>)
@@ -29,9 +32,6 @@ else()
 	set(LIBUVA LibUV::LibUV)
 endif()
 find_package(${LIBUV})
-
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
 
 add_executable (simple-presense-service 
 	simple-presense-service.cpp
