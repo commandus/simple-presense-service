@@ -12,6 +12,8 @@ typedef SSIZE_T ssize_t;
 #include <arpa/inet.h>
 #endif
 
+#include "presence.h"
+
 class UVListener {
 private:
     // libuv handler
@@ -19,6 +21,7 @@ private:
     struct sockaddr servaddr;
     int verbose;
 public:
+    Presence *presence;
     int status;
     UVListener();
     virtual ~UVListener();
@@ -32,9 +35,6 @@ public:
     );
     int run();
     void stop();
-
-    size_t query(unsigned char *retBuf, size_t retBufSize, const unsigned char* buf, size_t bufSize);
-
 };
 
 #endif

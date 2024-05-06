@@ -36,6 +36,7 @@ find_package(${LIBUV})
 add_executable (simple-presense-service 
 	simple-presense-service.cpp
 	uv-listener.cpp
+	presence.cpp mem-presence.cpp presence-item.cpp
 	third-party/argtable3/argtable3.c
 	third-party/daemonize.cpp
 	third-party/uv-mem.cpp

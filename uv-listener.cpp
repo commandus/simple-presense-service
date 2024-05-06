@@ -17,6 +17,7 @@
 #include "uv-mem.h"
 #include "ip-helper.h"
 #include "err-msg.h"
+#include "mem-presence.h"
 
 #define DEF_KEEPALIVE_SECS 60
 
@@ -87,8 +88,9 @@ static void onUDPRead(
 
         } else {
             unsigned char writeBuffer[WRITE_BUFFER_SIZE];
-            size_t sz = ((UVListener*) handle->loop->data)->query(writeBuffer,
-                sizeof(writeBuffer), (const unsigned char *) buf->base, bytesRead);
+            size_t sz = ((UVListener*) handle->loop->data)->presence->query(
+                addr, writeBuffer, sizeof(writeBuffer),
+                (const unsigned char *) buf->base, bytesRead);
             if (sz > 0) {
                 uv_buf_t wrBuf = uv_buf_init((char *) writeBuffer, sz);
                 auto req = (uv_udp_send_t *) malloc(sizeof(uv_udp_send_t));
@@ -117,8 +119,13 @@ static void onReadTCP(
 		uv_close((uv_handle_t *)client, onCloseClient);
 	} else {
         unsigned char writeBuffer[WRITE_BUFFER_SIZE];
-        size_t sz = ((UVListener*) client->loop->data)->query(writeBuffer,
-            sizeof(writeBuffer), (const unsigned char *) buf->base, readCount);
+        sockaddr addr;
+        int addrLen = sizeof(sockaddr);
+        uv_tcp_getpeername((const uv_tcp_t *) client, &addr, &addrLen);
+        size_t sz = ((UVListener*) client->loop->data)->presence->query(
+            &addr, writeBuffer, sizeof(writeBuffer),
+            (const unsigned char *) buf->base, readCount
+        );
         if (sz > 0) {
 			uv_write_t *req = allocReq();
 			uv_buf_t writeBuf = uv_buf_init((char *) writeBuffer, sz);
@@ -165,7 +172,7 @@ static void onConnect(
  * @see https://habr.com/ru/post/340758/
  */
 UVListener::UVListener()
-	: status(CODE_OK), verbose(0)
+	: status(CODE_OK), verbose(0), presence(new MemPresence)
 {
 	uv_loop_t *loop = uv_default_loop();
     loop->data = this;
@@ -259,19 +266,12 @@ int UVListener::run()
     return status;
 }
 
-size_t UVListener::query(
-	unsigned char* retBuf,
-	size_t retBufSize,
-	const unsigned char* buf,
-	size_t bufSize
-)
-{
-	return 0;
-}
-
 /**
  * 	Call stop() before destroy
  */
 UVListener::~UVListener()
 {
+    if (presence)
+        delete presence;
+    presence = nullptr;
 }
