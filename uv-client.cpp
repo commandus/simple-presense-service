@@ -11,6 +11,8 @@
 #else
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <cstring>
+
 #define SOCKET int
 #endif
 

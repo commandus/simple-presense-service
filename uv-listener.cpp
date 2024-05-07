@@ -55,17 +55,12 @@ static void onUDPRead(
                 (const unsigned char *) buf->base, bytesRead);
             if (sz > 0) {
                 if (listener->verbose > 1) {
-                    std::cout << _("Received ") << bytesRead << _(" bytes")
-                        << _(" sent ") << sz << _(" bytes")
-                        << std::endl;
                     PresenceItem it(&writeBuffer);
                     std::cout
                         << it.uid.toString() << ": "
                         << sockaddr2string(&it.addr)
                         << std::endl;
                 }
-
-
                 uv_buf_t wrBuf = uv_buf_init((char *) writeBuffer, sz);
                 auto req = (uv_udp_send_t *) malloc(sizeof(uv_udp_send_t));
 				if (req) {

@@ -135,4 +135,64 @@ sudo apt install libuv1-dev
 
 Executables:
 
-- simple-presense-service
+- simple-presence-service
+
+## Build in docker 
+
+```
+docker run -itv /home/andrei/src:/home/andrei/src lora bash
+
+cd /home/andrei/src/simple-presence-service
+mkdir -p build
+cd /home/andrei/src/simple-presence-service/build
+rm *;rm -r CMakeFiles/
+cmake ..
+make
+./simple-presence-service -?
+```
+
+### Commit docker
+
+```
+docker ps -a
+docker commit stoic_ramanujan
+docker images
+docker tag c30cb68a6443 lora
+# Remove closed containers
+docker rm $(docker ps -qa --no-trunc --filter "status=exited")
+```
+
+### Deploy
+
+#### Prepare destination directory on target machine
+
+Before first deploy create directory:
+
+```shell
+ssh lora.commandus.com
+mkdip -p ~/simple-presence-service
+```
+
+Stop service first if already running:
+
+```
+ssh lora.commandus.com
+cd ~/simple-presence-service
+pkill lora-ws
+```
+
+#### Strip and deploy
+
+```
+cd /home/andrei/src/simple-presence-service/build
+sudo chown andrei:andrei simple-presence-service
+strip simple-presence-service
+scp simple-presence-service andrei@lora.commandus.com:~/simple-presence-service/
+```
+
+#### Run service
+
+```
+cd ~/simple-presence-service
+./simple-presence-service -d
+```
