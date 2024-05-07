@@ -1,4 +1,4 @@
-#include "uv-listener.h"
+#include "uv-client.h"
 
 #include <algorithm>
 #include <uv.h>
@@ -40,7 +40,7 @@ static void onUDPRead(
 
         } else {
             unsigned char writeBuffer[WRITE_BUFFER_SIZE];
-            unsigned int sz = ((UVListener*) handle->loop->data)->presence->query(
+            unsigned int sz = ((UVClient*) handle->loop->data)->presence->query(
                 addr, writeBuffer, sizeof(writeBuffer),
                 (const unsigned char *) buf->base, bytesRead);
             if (sz > 0) {
@@ -76,7 +76,7 @@ static void onReadTCP(
         sockaddr addr;
         int addrLen = sizeof(sockaddr);
         uv_tcp_getpeername((const uv_tcp_t *) client, &addr, &addrLen);
-        unsigned int sz = ((UVListener*) client->loop->data)->presence->query(
+        unsigned int sz = ((UVClient*) client->loop->data)->presence->query(
             &addr, writeBuffer, sizeof(writeBuffer),
             (const unsigned char *) buf->base, readCount
         );
@@ -125,7 +125,7 @@ static void onConnect(
 /**
  * @see https://habr.com/ru/post/340758/
  */
-UVListener::UVListener()
+UVClient::UVClient()
 	: servaddr{}, verbose(0), presence(new MemPresence), status(CODE_OK)
 {
 	uv_loop_t *loop = uv_default_loop();
@@ -134,7 +134,7 @@ UVListener::UVListener()
 }
 
 // http://stackoverflow.com/questions/25615340/closing-libuv-handles-correctly
-void UVListener::stop()
+void UVClient::stop()
 {
 	auto *uvLoop = (uv_loop_t *) uv;
     if (!uvLoop || status == ERR_CODE_STOPPED)
@@ -156,7 +156,7 @@ void UVListener::stop()
 	}
 }
 
-void UVListener::setAddress(
+void UVClient::setAddress(
     const std::string &host,
     uint16_t port
 )
@@ -167,7 +167,7 @@ void UVListener::setAddress(
         uv_ip4_addr(host.c_str(), port, (sockaddr_in*) &servaddr);
 }
 
-void UVListener::setAddress(
+void UVClient::setAddress(
     uint32_t &ipv4,
     uint16_t port
 )
@@ -178,7 +178,7 @@ void UVListener::setAddress(
     a->sin_port = htons(port);
 }
 
-int UVListener::run()
+int UVClient::run()
 {
 	auto *loop = (uv_loop_t *) uv;
 	// TCP
@@ -223,7 +223,7 @@ int UVListener::run()
 /**
  * 	Call stop() before destroy
  */
-UVListener::~UVListener()
+UVClient::~UVClient()
 {
     if (presence)
         delete presence;

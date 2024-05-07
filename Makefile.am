@@ -19,21 +19,24 @@ bin_PROGRAMS = simple-presense-service
 
 nobase_dist_include_HEADERS = \
 	config.h \
-	err-msg.h presense.h mem-presense.h \
-	third-party/argtable3/argtable3.h third-party/strptime.h third-party/daemonize.h
+	err-msg.h presence.h mem-presence.h uv-client.h uv-listener.h \
+	third-party/argtable3/argtable3.h third-party/strptime.h \
+    third-party/daemonize.h \
+	third-party/ip-helper.h third-party/ip-address.h \
+	third-party/uv-mem.h third-party/uv-ip-helper.h
 
-simple_presense_service_SOURCES = 
-	simple-presense-service.cpp \
+simple_presence_service_SOURCES =
+	simple-presence-service.cpp \
 	uv-listener.cpp err-msg.cpp \
-	presense.cpp mem-presense.cpp \
+	presence.cpp presence-item.cpp mem-presence.cpp \
 	third-party/argtable3/argtable3.c \
 	third-party/daemonize.cpp \
 	third-party/uv-mem.cpp \
 	third-party/ip-address.cpp \
 	third-party/ip-helper.cpp
 
-simple_presense_service_LDADD = $(EXTRA_LIB) -L. -luv
-simple_presense_service_CPPFLAGS = 
+simple_presence_service_LDADD = $(EXTRA_LIB) -L. -luv
+simple_presence_service_CPPFLAGS =
 
 #
 # Configs, readme, CMake etc.

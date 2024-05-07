@@ -16,8 +16,9 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 set(VERSION_INFO 1.0.0)
+set(CMAKE_CXX_STANDARD 11)
 
-project ("simple-presense-service" VERSION ${VERSION_INFO})
+project ("simple-presence-service" VERSION ${VERSION_INFO})
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
@@ -33,8 +34,9 @@ else()
 endif()
 find_package(LibUV)
 
-add_executable (simple-presense-service 
-	simple-presense-service.cpp
+
+add_executable(simple-presence-service
+	simple-presence-service.cpp
 	uv-listener.cpp err-msg.cpp
 	presence.cpp mem-presence.cpp presence-item.cpp
 	third-party/argtable3/argtable3.c
@@ -42,10 +44,21 @@ add_executable (simple-presense-service
 	third-party/uv-mem.cpp
 	third-party/ip-address.cpp
 	third-party/ip-helper.cpp
+	third-party/uv-ip-helper.cpp
 )
-target_include_directories(simple-presense-service PRIVATE "third-party" "." ${VCPKG_INC} ${Intl_INCLUDE_DIRS})
-target_link_libraries(simple-presense-service PRIVATE ${OS_SPECIFIC_LIBS} ${LIBUVA})
+target_include_directories(simple-presence-service PRIVATE "third-party" "." ${VCPKG_INC} ${Intl_INCLUDE_DIRS})
+target_link_libraries(simple-presence-service PRIVATE ${OS_SPECIFIC_LIBS} ${LIBUVA})
 
-set(CMAKE_CXX_STANDARD 11)
-
-# TODO: Add tests and install targets if needed.
+add_executable(simple-presence-client
+	simple-presence-client.cpp
+	uv-client.cpp err-msg.cpp
+	presence.cpp mem-presence.cpp presence-item.cpp
+	third-party/argtable3/argtable3.c
+	third-party/daemonize.cpp
+	third-party/uv-mem.cpp
+	third-party/ip-address.cpp
+	third-party/ip-helper.cpp
+	third-party/uv-ip-helper.cpp
+)
+target_include_directories(simple-presence-client PRIVATE "third-party" "." ${VCPKG_INC} ${Intl_INCLUDE_DIRS})
+target_link_libraries(simple-presence-client PRIVATE ${OS_SPECIFIC_LIBS} ${LIBUVA})

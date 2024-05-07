@@ -1,5 +1,111 @@
 #include <cstring>
+#include <ios>
+#include <iomanip>
+#include <sstream>
 #include "presence-item.h"
+
+static bool isHexChar(
+    char ch
+)
+{
+    // 0-9
+    if (ch > 47 && ch < 58)
+        return true;
+    // a-f
+    if (ch > 96 && ch < 103)
+        return true;
+    // A-F
+    if (ch > 64 && ch < 71)
+        return true;
+    return false;
+}
+
+static unsigned char hexDigitToChar(
+    char ch
+)
+{
+    // 0-9
+    if (ch > 47 && ch < 58)
+        return ch - 48;
+    // a-f
+    if (ch > 96 && ch < 103)
+        return ch - 87;
+    // A-F
+    if (ch > 64 && ch < 71)
+        return ch - 55;
+    return 0;
+}
+
+static unsigned char hex2char(
+    char *digits
+)
+{
+    return hexDigitToChar(digits[0]) * 16 + hexDigitToChar(digits[1]);
+}
+
+UID::UID()
+{
+    memset(&data1, 16, 0);
+}
+
+UID::UID(const char *s)
+{
+    const char *p = s;
+    int digitCount = 0;
+    int bytes = 0;
+    char a[2];
+    while (*p) {
+        if (isHexChar(*p)) {
+            digitCount++;
+            if (digitCount == 1) {
+                a[0] = *p;
+            } else {
+                if (digitCount == 2) {
+                    a[1] = *p;
+                    if (bytes > 15)
+                        break;
+                    unsigned char *c = (unsigned char *) this->data1;
+                    c[bytes] = hex2char(a);
+                    bytes++;
+                    digitCount = 0;
+                }
+            }
+        } else {
+            digitCount = 0;
+        }
+        p++;
+    }
+}
+
+std::string UID::toString() const
+{
+    std::stringstream ss;
+    std::ios_base::fmtflags f(ss.flags());
+    unsigned char *c = (unsigned char *) this->data1; 
+    ss << std::hex << std::setfill('0')
+        << std::setw(2) << (int) c[0]
+        << std::setw(2) << (int) c[1]
+        << std::setw(2) << (int) c[2]
+        << std::setw(2) << (int) c[3]
+        << "-"
+        << std::setw(2) << (int) c[4]
+        << std::setw(2) << (int) c[5]
+        << "-"
+        << std::setw(2) << (int) c[6]
+        << std::setw(2) << (int) c[7]
+        << "-"
+        << std::setw(2) << (int) c[8]
+        << std::setw(2) << (int) c[9]
+        << "-"
+        << std::setw(2) << (int) c[10]
+        << std::setw(2) << (int) c[11]
+        << std::setw(2) << (int) c[12]
+        << std::setw(2) << (int) c[13]
+        << std::setw(2) << (int) c[14]
+        << std::setw(2) << (int) c[15];
+    ss.flags(f);
+    return ss.str();
+}
 
 bool UID::operator <(
     const UID &rhs

@@ -14,62 +14,34 @@
 #endif
 
 #include "argtable3/argtable3.h"
-
-#include "uv-listener.h"
-
-#define DEF_DB_GATEWAY_JSON  "gateway.json"
-
-
 #include "err-msg.h"
 #include "log.h"
 #include "daemonize.h"
 #include "ip-address.h"
+#include "uv-client.h"
 
 // i18n
 // #include <libintl.h>
 // #define _(String) gettext (String)
 #define _(String) (String)
 
-const char* programName = "simple-presense-service";
-        
-enum IP_PROTO {
-    PROTO_UDP,
-    PROTO_TCP,
-    PROTO_UDP_N_TCP
-};
-
-static std::string IP_PROTO2string(
-    enum IP_PROTO value
-)
-{
-    switch (value) {
-    case PROTO_UDP:
-        return "UDP";
-    case PROTO_TCP:
-        return "TCP";
-    default:
-        return "TCP, UDP";
-    }
-}
+const char* programName = "simple-presence-client";
 
 // global parameters and descriptors
-class CliServiceDescriptorNParams {
+class ClientDescriptorNParams {
 public:
-    UVListener server;
-    enum IP_PROTO proto;
+    UVClient client;
     std::string intf;
     uint16_t port;
-    int32_t code;
-    uint64_t accessCode;
     bool runAsDaemon;
     std::string pidfile;
     int verbose;
     std::string db;
     std::string dbGatewayJson;
     int32_t retCode;
-    CliServiceDescriptorNParams()
-        : proto(PROTO_UDP), port(4205), code(0), accessCode(0), verbose(0), retCode(0),
-        runAsDaemon(false)
+    ClientDescriptorNParams()
+        : port(2024), verbose(0), retCode(0),
+          runAsDaemon(false)
     {
 
     }
@@ -77,15 +49,14 @@ public:
     std::string toString() const {
         std::stringstream ss;
         ss
-            << _("Service: ") << intf << ":" << port << " " << IP_PROTO2string(proto) << ".\n"
-            << _("Code: ") << std::hex << code << _(", access code: ") << accessCode << " " << "\n";
+                << _("Service: ") << intf << ":" << port << ".\n";
         if (!db.empty())
             ss << _("database file name: ") << db << "\n";
         return ss.str();
     }
 };
 
-CliServiceDescriptorNParams svc;
+ClientDescriptorNParams svc;
 
 static void done() {
     std::cerr << MSG_GRACEFULLY_STOPPED << std::endl;
@@ -93,7 +64,7 @@ static void done() {
 }
 
 static void stop() {
-    svc.server.stop();
+    svc.client.stop();
 }
 
 void signalHandler(int signal)
@@ -116,18 +87,16 @@ void setSignalHandler()
 }
 
 void run() {
-    svc.server.setAddress(svc.intf, svc.port);
-    svc.retCode = svc.server.run();
+    svc.client.setAddress(svc.intf, svc.port);
+    svc.retCode = svc.client.run();
     if (svc.retCode)
         std::cerr << ERR_MESSAGE << svc.retCode << ": "
-            << appStrError(svc.retCode)
-            << std::endl;
+                  << appStrError(svc.retCode)
+                  << std::endl;
 }
 
 int main(int argc, char** argv) {
-    struct arg_str* a_interface_n_port = arg_str0(nullptr, nullptr, _("ipaddr:port"), _("Default *:2024"));
-    struct arg_int* a_code = arg_int0("c", "code", _("<number>"), _("Default 42. 0x - hex number prefix"));
-    struct arg_str* a_access_code = arg_str0("a", "access", _("<hex>"), _("Default 2a (42 decimal)"));
+    struct arg_str* a_interface_n_port = arg_str0(nullptr, nullptr, _("ipaddr:port"), _("Default 127.0.0.1:2024"));
     struct arg_lit* a_daemonize = arg_lit0("d", "daemonize", _("run daemon"));
     struct arg_str* a_pidfile = arg_str0("p", "pidfile", _("<file>"), _("Check whether a process has created the file pidfile"));
     struct arg_lit* a_verbose = arg_litn("v", "verbose", 0, 2, _("-v - verbose, -vv - debug"));
@@ -135,9 +104,9 @@ int main(int argc, char** argv) {
     struct arg_end* a_end = arg_end(20);
 
     void* argtable[] = {
-        a_interface_n_port,
-        a_code, a_access_code, a_verbose, a_daemonize, a_pidfile,
-        a_help, a_end
+            a_interface_n_port,
+            a_verbose, a_daemonize, a_pidfile,
+            a_help, a_end
     };
 
     // verify the argtable[] entries were allocated successfully
@@ -160,18 +129,9 @@ int main(int argc, char** argv) {
         splitAddress(svc.intf, svc.port, std::string(*a_interface_n_port->sval));
     }
     else {
-        svc.intf = "*";
+        svc.intf = "127.0.0.1";
         svc.port = 2024;
     }
-
-    if (a_code->count)
-        svc.code = *a_code->ival;
-    else
-        svc.code = 42;
-    if (a_access_code->count)
-        svc.accessCode = strtoull(*a_access_code->sval, nullptr, 16);
-    else
-        svc.accessCode = 42;
 
     // special case: '--help' takes precedence over error reporting
     if ((a_help->count) || nerrors) {
@@ -200,10 +160,10 @@ int main(int argc, char** argv) {
         std::string programPath = getcwd(workDir, PATH_MAX);
         if (svc.verbose)
             std::cerr << MSG_LISTENER_DAEMON_RUN
-            << "(" << programPath << "/" << programName << "). "
-            << MSG_CHECK_SYSLOG << std::endl;
+                      << "(" << programPath << "/" << programName << "). "
+                      << MSG_CHECK_SYSLOG << std::endl;
         OPEN_SYSLOG(programName)
-            Daemonize daemon(programName, programPath, run, stop, done, 0, svc.pidfile);
+        Daemonize daemon(programName, programPath, run, stop, done, 0, svc.pidfile);
         // CLOSESYSLOG()
     }
     else {

@@ -12,6 +12,8 @@ typedef std::chrono::time_point<std::chrono::system_clock> TASK_TIME;
 #include <guiddef.h>
 #else
 #include <sys/socket.h>
+#include <string>
+
 #endif
 
 class UID {
@@ -20,14 +22,18 @@ public:
     unsigned short data2;
     unsigned short data3;
     unsigned char data4[8];
+
+    UID();
+    UID(const char *s);
     bool operator <(const UID &rhs) const;
+    std::string toString() const ;
 };
 
 class PresenceItem {
 public:
     TASK_TIME modified;
     UID uid;
-    struct sockaddr addr;   // IPv4: 8 bytes, up to 16 bytes. 
+    struct sockaddr addr; // IPv4 16 bytes.
     PresenceItem();
     PresenceItem(const UID *uid, const struct sockaddr *addr);
     virtual ~PresenceItem();
