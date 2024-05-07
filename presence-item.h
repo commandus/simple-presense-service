@@ -1,6 +1,7 @@
 #ifndef SIMPLE_PRESENSE_SERVICE_PRESENCE_ITEM_H
 #define SIMPLE_PRESENSE_SERVICE_PRESENCE_ITEM_H
 
+#include <string>
 #include <chrono>
 
 typedef std::chrono::time_point<std::chrono::system_clock> TASK_TIME;
@@ -39,6 +40,7 @@ public:
     struct sockaddr addr; // IPv4 16 bytes.
     PresenceItem();
     PresenceItem(const UID *uid, const struct sockaddr *addr);
+    PresenceItem(void* buffer);
     virtual ~PresenceItem();
 };
 

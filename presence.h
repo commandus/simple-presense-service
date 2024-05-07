@@ -17,6 +17,9 @@ public:
         unsigned char *retBuf, std::size_t retBufSize,
         const unsigned char* buf, std::size_t bufSize
     );
+    bool put(
+        const unsigned char* buf, std::size_t bufSize
+    );
 };
 
 #endif

@@ -162,4 +162,13 @@ PresenceItem::PresenceItem(
 	memmove(&addr, aAddr, sizeof(struct sockaddr));
 }
 
+PresenceItem::PresenceItem(
+    void* buffer
+)
+    : modified(std::chrono::system_clock::now())
+{
+    memmove(&uid, buffer, sizeof(UID));
+    memmove(&addr, (char *) buffer + sizeof(UID), sizeof(struct sockaddr));
+}
+
 PresenceItem::~PresenceItem() = default;

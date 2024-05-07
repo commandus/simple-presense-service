@@ -40,3 +40,16 @@ unsigned int Presence::query(
     }
     return 0;
 }
+
+bool Presence::put(
+    const unsigned char* buf, std::size_t bufSize
+)
+{
+    if (bufSize == 32) {
+        // update address
+        PresenceItem item((UID*) buf, (sockaddr *) (buf + sizeof(UID)));
+        put(item);
+        return true;
+    }
+    return false;
+}

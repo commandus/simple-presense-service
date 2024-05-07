@@ -6,12 +6,12 @@
 typedef SSIZE_T ssize_t;
 #endif
 
-#include <string>
+
+#include <uv.h>
+
 #ifdef _MSC_VER
 #else
 #include <arpa/inet.h>
-#include <uv.h>
-
 #endif
 
 #include "presence.h"
@@ -27,6 +27,7 @@ public:
     int status;
     struct sockaddr remoteAddress;
     uv_udp_t udpSocket;
+    UID uid;
 
     UVClient();
     virtual ~UVClient();

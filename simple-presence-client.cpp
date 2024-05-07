@@ -30,7 +30,6 @@ const char* programName = "simple-presence-client";
 // global parameters and descriptors
 class ClientDescriptorNParams {
 public:
-    UID uid;
     UVClient client;
     std::string remoteAddress;
     uint16_t remotePort;
@@ -48,7 +47,7 @@ public:
     std::string toString() const {
         std::stringstream ss;
         ss
-            << _("UUID: ") << uid.toString() << " "
+            << _("UUID: ") << client.uid.toString() << " "
             << _("Service: ") << remoteAddress << ":" << remotePort << ".\n";
         return ss.str();
     }
@@ -137,9 +136,9 @@ int main(int argc, char** argv) {
     }
 
     if (a_uid->count)
-        cli.uid = *a_uid->sval;
+        cli.client.uid = *a_uid->sval;
     else
-        cli.uid.generateRandom();
+        cli.client.uid.generateRandom();
 
     // special case: '--help' takes precedence over error reporting
     if ((a_help->count) || nerrors) {

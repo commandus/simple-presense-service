@@ -1,6 +1,7 @@
 #include "uv-listener.h"
 
 #include <algorithm>
+#include <iostream>
 #include <uv.h>
 
 #ifdef _MSC_VER
@@ -11,8 +12,6 @@
 #else
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <iostream>
-
 #define SOCKET int
 #endif
 
@@ -21,6 +20,7 @@
 #include "uv-ip-helper.h"
 #include "err-msg.h"
 #include "mem-presence.h"
+#include <ip-address.h>
 
 // i18n
 // #include <libintl.h>
@@ -49,15 +49,22 @@ static void onUDPRead(
         if (bytesRead == 0) {
 
         } else {
-            unsigned char writeBuffer[WRITE_BUFFER_SIZE];
+            unsigned char writeBuffer[32];
             unsigned int sz = listener->presence->query(
                 addr, writeBuffer, sizeof(writeBuffer),
                 (const unsigned char *) buf->base, bytesRead);
             if (sz > 0) {
-                if (listener->verbose > 1)
+                if (listener->verbose > 1) {
                     std::cout << _("Received ") << bytesRead << _(" bytes")
                         << _(" sent ") << sz << _(" bytes")
                         << std::endl;
+                    PresenceItem it(&writeBuffer);
+                    std::cout
+                        << it.uid.toString() << ": "
+                        << sockaddr2string(&it.addr)
+                        << std::endl;
+                }
+
 
                 uv_buf_t wrBuf = uv_buf_init((char *) writeBuffer, sz);
                 auto req = (uv_udp_send_t *) malloc(sizeof(uv_udp_send_t));

@@ -1,6 +1,7 @@
 #include "uv-client.h"
 
 #include <algorithm>
+#include <iostream>
 
 #ifdef _MSC_VER
 #include <io.h>
@@ -10,8 +11,6 @@
 #else
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <iostream>
-
 #define SOCKET int
 #endif
 
@@ -43,25 +42,14 @@ static void onUDPRead(
         if (bytesRead == 0) {
 
         } else {
-            if (client->verbose > 1) {
-                std::cout << "Read " << bytesRead << " bytes" << std::endl;
-            }
             if (bytesRead == 32) {
-                unsigned char readBuffer[32];
-                unsigned int sz = client->presence->query(
-                        addr, readBuffer, sizeof(readBuffer),
-                        (const unsigned char *) buf->base, bytesRead);
-                if (sz > 0) {
-                    uv_buf_t wrBuf = uv_buf_init((char *) readBuffer, sz);
-                    auto req = (uv_udp_send_t *) malloc(sizeof(uv_udp_send_t));
-                    if (req) {
-                        req->data = readBuffer; // to free up if need it
-                        uv_udp_send(req, handle, &wrBuf, 1, addr,
-                                    [](uv_udp_send_t *req, int status) {
-                                        if (req)
-                                            free(req);
-                                    });
-                    }
+                PresenceItem it(buf->base);
+                client->presence->put(it);
+                if (client->verbose > 1) {
+                    std::cout 
+                        << it.uid.toString() << ": "
+                        << sockaddr2string(&it.addr)
+                        << std::endl;
                 }
             }
         }
@@ -144,8 +132,9 @@ void onTimer(
         }
         // Request <SRC-UID:16>[<DEST-UID:16>] = 16, 32 bytes
         unsigned int sz = 16;
-        unsigned char writeBuffer[16];
-        uv_buf_t wrBuf = uv_buf_init((char *) writeBuffer, sz);
+        char writeBuffer[16];
+        memmove(&writeBuffer, &c->uid.data1, 16);
+        uv_buf_t wrBuf = uv_buf_init((char *)  &writeBuffer, sz);
         auto req = (uv_udp_send_t *) malloc(sizeof(uv_udp_send_t));
         if (req) {
             req->data = writeBuffer; // to free up if need it
