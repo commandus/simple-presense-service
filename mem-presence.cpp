@@ -50,4 +50,3 @@ void MemPresence::put(
     storage[item.uid] = r;
     cleanExpired(now);
 }
-

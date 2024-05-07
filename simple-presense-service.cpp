@@ -119,11 +119,13 @@ void run() {
     svc.server.setAddress(svc.intf, svc.port);
     svc.retCode = svc.server.run();
     if (svc.retCode)
-        std::cerr << ERR_MESSAGE << svc.retCode << ": " << std::endl;
+        std::cerr << ERR_MESSAGE << svc.retCode << ": "
+            << appStrError(svc.retCode)
+            << std::endl;
 }
 
 int main(int argc, char** argv) {
-    struct arg_str* a_interface_n_port = arg_str0(nullptr, nullptr, _("ipaddr:port"), _("Default *:4244"));
+    struct arg_str* a_interface_n_port = arg_str0(nullptr, nullptr, _("ipaddr:port"), _("Default *:2024"));
     struct arg_int* a_code = arg_int0("c", "code", _("<number>"), _("Default 42. 0x - hex number prefix"));
     struct arg_str* a_access_code = arg_str0("a", "access", _("<hex>"), _("Default 2a (42 decimal)"));
     struct arg_lit* a_daemonize = arg_lit0("d", "daemonize", _("run daemon"));
@@ -159,7 +161,7 @@ int main(int argc, char** argv) {
     }
     else {
         svc.intf = "*";
-        svc.port = 4244;
+        svc.port = 2024;
     }
 
     if (a_code->count)

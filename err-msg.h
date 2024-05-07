@@ -21,4 +21,6 @@
 #define ERR_COMMAND_LINE        		"Wrong parameter(s)"
 #define ERR_WSA_STARTUP					"WSA startup error"
 
+const char *appStrError(int code);
+
 #endif

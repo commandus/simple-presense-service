@@ -19,12 +19,12 @@ bin_PROGRAMS = simple-presense-service
 
 nobase_dist_include_HEADERS = \
 	config.h \
-	presense.h mem-presense.h \
+	err-msg.h presense.h mem-presense.h \
 	third-party/argtable3/argtable3.h third-party/strptime.h third-party/daemonize.h
 
 simple_presense_service_SOURCES = 
 	simple-presense-service.cpp \
-	uv-listener.cpp \
+	uv-listener.cpp err-msg.cpp \
 	presense.cpp mem-presense.cpp \
 	third-party/argtable3/argtable3.c \
 	third-party/daemonize.cpp \
