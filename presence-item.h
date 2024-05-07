@@ -14,12 +14,14 @@ typedef std::chrono::time_point<std::chrono::system_clock> TASK_TIME;
 #include <sys/socket.h>
 #endif
 
-typedef struct UID {
+class UID {
+public:
     unsigned long  data1;
     unsigned short data2;
     unsigned short data3;
-    unsigned char  data4[8];
-} UID;
+    unsigned char data4[8];
+    bool operator <(const UID &rhs) const;
+};
 
 class PresenceItem {
 public:

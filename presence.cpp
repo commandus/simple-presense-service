@@ -1,3 +1,4 @@
+#include <cstring>
 #include "presence.h"
 
 Presence::Presence() = default;

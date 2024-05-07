@@ -1,4 +1,12 @@
+#include <cstring>
 #include "presence-item.h"
+
+bool UID::operator <(
+    const UID &rhs
+) const
+{
+    return memcmp(this, &rhs, sizeof(UID)) < 0;
+}
 
 PresenceItem::PresenceItem()
 	: modified(std::chrono::system_clock::now())
