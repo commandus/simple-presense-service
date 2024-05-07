@@ -16,11 +16,10 @@ typedef SSIZE_T ssize_t;
 
 class UVListener {
 private:
-    // libuv handler
-    void *uv;
-    struct sockaddr servaddr;
-    int verbose;
+    void *uv;   ///< libUv handler
+    struct sockaddr serviceAddress;
 public:
+    int verbose;
     Presence *presence;
     int status;
     UVListener();

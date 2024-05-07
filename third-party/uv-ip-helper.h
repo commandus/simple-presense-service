@@ -11,7 +11,7 @@ void getAddrNPort(
 );
 
 /**
- * Returns IP address dotted representation, port number
+ * Returns IP address dotted representation, remotePort number
  * @return true: valid IP address false: address is NULL
  */
 bool getSocketAddrNPort(

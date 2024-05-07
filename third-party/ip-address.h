@@ -8,7 +8,9 @@
 #else
 #include <sys/socket.h>
 #include <netinet/in.h>
+#ifndef SOCKET
 typedef int SOCKET;
+#endif
 #endif
 
 /**
@@ -21,7 +23,7 @@ bool splitAddress(
 );
 
 /**
- * Return IP adress:port
+ * Return IP adress:remotePort
  * @return address string
  */
 std::string sockaddr2string(

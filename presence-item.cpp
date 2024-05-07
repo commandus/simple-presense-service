@@ -2,6 +2,8 @@
 #include <ios>
 #include <iomanip>
 #include <sstream>
+#include <iostream>
+#include <random>
 #include "presence-item.h"
 
 static bool isHexChar(
@@ -50,10 +52,18 @@ UID::UID()
 
 UID::UID(const char *s)
 {
+    parseString(s);
+}
+
+bool UID::parseString(
+    const char *s
+)
+{
     const char *p = s;
     int digitCount = 0;
     int bytes = 0;
     char a[2];
+    unsigned char *c = (unsigned char *) &data1;
     while (*p) {
         if (isHexChar(*p)) {
             digitCount++;
@@ -64,7 +74,6 @@ UID::UID(const char *s)
                     a[1] = *p;
                     if (bytes > 15)
                         break;
-                    unsigned char *c = (unsigned char *) this->data1;
                     c[bytes] = hex2char(a);
                     bytes++;
                     digitCount = 0;
@@ -75,13 +84,14 @@ UID::UID(const char *s)
         }
         p++;
     }
+    return bytes >= 15;
 }
 
 std::string UID::toString() const
 {
     std::stringstream ss;
     std::ios_base::fmtflags f(ss.flags());
-    unsigned char *c = (unsigned char *) this->data1; 
+    unsigned char *c = (unsigned char *) &this->data1;
     ss << std::hex << std::setfill('0')
         << std::setw(2) << (int) c[0]
         << std::setw(2) << (int) c[1]
@@ -107,11 +117,33 @@ std::string UID::toString() const
     return ss.str();
 }
 
+void UID::generateRandom()
+{
+    // sorry
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    std::uniform_int_distribution<std::mt19937::result_type> dist(0, UINT64_MAX);
+
+    long *r = (long *) &data1;
+    for (int i = 0; i < 4; i++) {
+        r[i] = dist(rng);
+    }
+    unsigned char *c = (unsigned char *) &this->data1;
+}
+
 bool UID::operator <(
     const UID &rhs
 ) const
 {
     return memcmp(this, &rhs, sizeof(UID)) < 0;
+}
+
+UID& UID::operator =(
+    const char *s
+)
+{
+    parseString(s);
+    return *this;
 }
 
 PresenceItem::PresenceItem()

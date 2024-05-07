@@ -10,6 +10,8 @@ typedef SSIZE_T ssize_t;
 #ifdef _MSC_VER
 #else
 #include <arpa/inet.h>
+#include <uv.h>
+
 #endif
 
 #include "presence.h"
@@ -19,12 +21,20 @@ private:
     // libuv handler
     void *uv;
     struct sockaddr servaddr;
-    int verbose;
 public:
+    int verbose;
     Presence *presence;
     int status;
+    struct sockaddr remoteAddress;
+    uv_udp_t udpSocket;
+
     UVClient();
     virtual ~UVClient();
+
+    void setRemoteAddress(
+        const std::string &host,
+        uint16_t port
+    );
     void setAddress(
         const std::string &host,
         uint16_t port

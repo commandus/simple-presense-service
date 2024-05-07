@@ -11,6 +11,8 @@
 #else
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <iostream>
+
 #define SOCKET int
 #endif
 
@@ -20,7 +22,12 @@
 #include "err-msg.h"
 #include "mem-presence.h"
 
-#define DEF_KEEPALIVE_SECS 60
+// i18n
+// #include <libintl.h>
+// #define _(String) gettext (String)
+#define _(String) (String)
+
+#define DEF_TCP_KEEPALIVE_SECS 60
 
 #define WRITE_BUFFER_SIZE 1024
 
@@ -32,6 +39,9 @@ static void onUDPRead(
 	unsigned flags
 )
 {
+    UVListener* listener = (UVListener*) handle->loop->data;
+    if (!listener)
+        return;
   	if (bytesRead < 0) {
     	if (bytesRead != UV_EOF) {
     	}
@@ -40,10 +50,15 @@ static void onUDPRead(
 
         } else {
             unsigned char writeBuffer[WRITE_BUFFER_SIZE];
-            unsigned int sz = ((UVListener*) handle->loop->data)->presence->query(
+            unsigned int sz = listener->presence->query(
                 addr, writeBuffer, sizeof(writeBuffer),
                 (const unsigned char *) buf->base, bytesRead);
             if (sz > 0) {
+                if (listener->verbose > 1)
+                    std::cout << _("Received ") << bytesRead << _(" bytes")
+                        << _(" sent ") << sz << _(" bytes")
+                        << std::endl;
+
                 uv_buf_t wrBuf = uv_buf_init((char *) writeBuffer, sz);
                 auto req = (uv_udp_send_t *) malloc(sizeof(uv_udp_send_t));
 				if (req) {
@@ -111,7 +126,7 @@ static void onConnect(
 	}
 	uv_tcp_t *client = allocClient();
 	uv_tcp_init(server->loop, client);
-    uv_tcp_keepalive(client, 1, DEF_KEEPALIVE_SECS);
+    uv_tcp_keepalive(client, 1, DEF_TCP_KEEPALIVE_SECS);
 #ifdef ENABLE_DEBUG
     std::cerr << MSG_CONNECTED << std::endl;
 #endif
@@ -126,7 +141,7 @@ static void onConnect(
  * @see https://habr.com/ru/post/340758/
  */
 UVListener::UVListener()
-	: servaddr{}, verbose(0), presence(new MemPresence), status(CODE_OK)
+	: serviceAddress{}, verbose(0), presence(new MemPresence), status(CODE_OK)
 {
 	uv_loop_t *loop = uv_default_loop();
     loop->data = this;
@@ -162,9 +177,9 @@ void UVListener::setAddress(
 )
 {
     if (isAddrStringIPv6(host.c_str()))
-        uv_ip6_addr(host.c_str(), port, (sockaddr_in6*) &servaddr);
+        uv_ip6_addr(host.c_str(), port, (sockaddr_in6*) &serviceAddress);
     else
-        uv_ip4_addr(host.c_str(), port, (sockaddr_in*) &servaddr);
+        uv_ip4_addr(host.c_str(), port, (sockaddr_in*) &serviceAddress);
 }
 
 void UVListener::setAddress(
@@ -172,7 +187,7 @@ void UVListener::setAddress(
     uint16_t port
 )
 {
-	struct sockaddr_in *a = (struct sockaddr_in *) &servaddr;
+	struct sockaddr_in *a = (struct sockaddr_in *) &serviceAddress;
     a->sin_family = AF_INET;
     a->sin_addr.s_addr = ipv4;
     a->sin_port = htons(port);
@@ -184,8 +199,8 @@ int UVListener::run()
 	// TCP
 	uv_tcp_t tcpSocket;
 	uv_tcp_init(loop, &tcpSocket);
-    uv_tcp_keepalive(&tcpSocket, 1, DEF_KEEPALIVE_SECS);
-	uv_tcp_bind(&tcpSocket, (const struct sockaddr *)&servaddr, 0);
+    uv_tcp_keepalive(&tcpSocket, 1, DEF_TCP_KEEPALIVE_SECS);
+	uv_tcp_bind(&tcpSocket, (const struct sockaddr *)&serviceAddress, 0);
 	int r = uv_listen((uv_stream_t *) &tcpSocket, 128, onConnect);
 	if (r) {
 #ifdef ENABLE_DEBUG
@@ -198,7 +213,7 @@ int UVListener::run()
 	// UDP
 	uv_udp_t udpSocket;
 	uv_udp_init(loop, &udpSocket);
-	r = uv_udp_bind(&udpSocket, (const struct sockaddr *)&servaddr, UV_UDP_REUSEADDR);
+	r = uv_udp_bind(&udpSocket, (const struct sockaddr *)&serviceAddress, UV_UDP_REUSEADDR);
     if (r) {
 #ifdef ENABLE_DEBUG
         std::cerr << ERR_SOCKET_BIND << uv_strerror(r) << std::endl;

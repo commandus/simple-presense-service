@@ -30,17 +30,16 @@ const char* programName = "simple-presence-client";
 // global parameters and descriptors
 class ClientDescriptorNParams {
 public:
+    UID uid;
     UVClient client;
-    std::string intf;
-    uint16_t port;
+    std::string remoteAddress;
+    uint16_t remotePort;
     bool runAsDaemon;
     std::string pidfile;
     int verbose;
-    std::string db;
-    std::string dbGatewayJson;
     int32_t retCode;
     ClientDescriptorNParams()
-        : port(2024), verbose(0), retCode(0),
+        : remotePort(2024), verbose(0), retCode(0),
           runAsDaemon(false)
     {
 
@@ -49,22 +48,21 @@ public:
     std::string toString() const {
         std::stringstream ss;
         ss
-                << _("Service: ") << intf << ":" << port << ".\n";
-        if (!db.empty())
-            ss << _("database file name: ") << db << "\n";
+            << _("UUID: ") << uid.toString() << " "
+            << _("Service: ") << remoteAddress << ":" << remotePort << ".\n";
         return ss.str();
     }
 };
 
-ClientDescriptorNParams svc;
+ClientDescriptorNParams cli;
 
 static void done() {
     std::cerr << MSG_GRACEFULLY_STOPPED << std::endl;
-    exit(svc.retCode);
+    exit(cli.retCode);
 }
 
 static void stop() {
-    svc.client.stop();
+    cli.client.stop();
 }
 
 void signalHandler(int signal)
@@ -87,16 +85,20 @@ void setSignalHandler()
 }
 
 void run() {
-    svc.client.setAddress(svc.intf, svc.port);
-    svc.retCode = svc.client.run();
-    if (svc.retCode)
-        std::cerr << ERR_MESSAGE << svc.retCode << ": "
-                  << appStrError(svc.retCode)
+    cli.client.setAddress("*", cli.remotePort + 1);
+    cli.client.setRemoteAddress(cli.remoteAddress, cli.remotePort);
+    cli.client.verbose = cli.verbose;
+
+    cli.retCode = cli.client.run();
+    if (cli.retCode)
+        std::cerr << ERR_MESSAGE << cli.retCode << ": "
+                  << appStrError(cli.retCode)
                   << std::endl;
 }
 
 int main(int argc, char** argv) {
-    struct arg_str* a_interface_n_port = arg_str0(nullptr, nullptr, _("ipaddr:port"), _("Default 127.0.0.1:2024"));
+    struct arg_str* a_uid = arg_str0(nullptr, nullptr, _("UUID"), _("cat /proc/sys/kernel/random/uuid"));
+    struct arg_str* a_interface_n_port = arg_str0("d", "dest", _("ipaddr:remotePort"), _("Default 127.0.0.1:202"));
     struct arg_lit* a_daemonize = arg_lit0("d", "daemonize", _("run daemon"));
     struct arg_str* a_pidfile = arg_str0("p", "pidfile", _("<file>"), _("Check whether a process has created the file pidfile"));
     struct arg_lit* a_verbose = arg_litn("v", "verbose", 0, 2, _("-v - verbose, -vv - debug"));
@@ -104,9 +106,10 @@ int main(int argc, char** argv) {
     struct arg_end* a_end = arg_end(20);
 
     void* argtable[] = {
-            a_interface_n_port,
-            a_verbose, a_daemonize, a_pidfile,
-            a_help, a_end
+        a_interface_n_port,
+        a_uid,
+        a_verbose, a_daemonize, a_pidfile,
+        a_help, a_end
     };
 
     // verify the argtable[] entries were allocated successfully
@@ -117,21 +120,26 @@ int main(int argc, char** argv) {
     // Parse the command line as defined by argtable[]
     int nerrors = arg_parse(argc, argv, argtable);
 
-    svc.runAsDaemon = a_daemonize->count > 0;
+    cli.runAsDaemon = a_daemonize->count > 0;
     if (a_pidfile->count)
-        svc.pidfile = *a_pidfile->sval;
+        cli.pidfile = *a_pidfile->sval;
     else
-        svc.pidfile = "";
+        cli.pidfile = "";
 
-    svc.verbose = a_verbose->count;
+    cli.verbose = a_verbose->count;
 
     if (a_interface_n_port->count) {
-        splitAddress(svc.intf, svc.port, std::string(*a_interface_n_port->sval));
+        splitAddress(cli.remoteAddress, cli.remotePort, std::string(*a_interface_n_port->sval));
     }
     else {
-        svc.intf = "127.0.0.1";
-        svc.port = 2024;
+        cli.remoteAddress = "127.0.0.1";
+        cli.remotePort = 2024;
     }
+
+    if (a_uid->count)
+        cli.uid = *a_uid->sval;
+    else
+        cli.uid.generateRandom();
 
     // special case: '--help' takes precedence over error reporting
     if ((a_help->count) || nerrors) {
@@ -155,21 +163,21 @@ int main(int argc, char** argv) {
     }
 #endif
 
-    if (svc.runAsDaemon) {
+    if (cli.runAsDaemon) {
         char workDir[PATH_MAX];
         std::string programPath = getcwd(workDir, PATH_MAX);
-        if (svc.verbose)
+        if (cli.verbose)
             std::cerr << MSG_LISTENER_DAEMON_RUN
                       << "(" << programPath << "/" << programName << "). "
                       << MSG_CHECK_SYSLOG << std::endl;
         OPEN_SYSLOG(programName)
-        Daemonize daemon(programName, programPath, run, stop, done, 0, svc.pidfile);
+        Daemonize daemon(programName, programPath, run, stop, done, 0, cli.pidfile);
         // CLOSESYSLOG()
     }
     else {
         setSignalHandler();
-        if (svc.verbose > 1)
-            std::cerr << svc.toString();
+        if (cli.verbose > 1)
+            std::cerr << cli.toString();
         run();
         done();
     }

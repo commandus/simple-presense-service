@@ -56,15 +56,15 @@ public:
     }
 };
 
-CliSvcDescriptorNParams svc;
+CliSvcDescriptorNParams cli;
 
 static void done() {
     std::cerr << MSG_GRACEFULLY_STOPPED << std::endl;
-    exit(svc.retCode);
+    exit(cli.retCode);
 }
 
 static void stop() {
-    svc.server.stop();
+    cli.server.stop();
 }
 
 void signalHandler(int signal)
@@ -87,16 +87,17 @@ void setSignalHandler()
 }
 
 void run() {
-    svc.server.setAddress(svc.intf, svc.port);
-    svc.retCode = svc.server.run();
-    if (svc.retCode)
-        std::cerr << ERR_MESSAGE << svc.retCode << ": "
-            << appStrError(svc.retCode)
+    cli.server.setAddress(cli.intf, cli.port);
+    cli.server.verbose = cli.verbose;
+    cli.retCode = cli.server.run();
+    if (cli.retCode)
+        std::cerr << ERR_MESSAGE << cli.retCode << ": "
+            << appStrError(cli.retCode)
             << std::endl;
 }
 
 int main(int argc, char** argv) {
-    struct arg_str* a_interface_n_port = arg_str0(nullptr, nullptr, _("ipaddr:port"), _("Default *:2024"));
+    struct arg_str* a_interface_n_port = arg_str0(nullptr, nullptr, _("ipaddr:remotePort"), _("Default *:2024"));
     struct arg_lit* a_daemonize = arg_lit0("d", "daemonize", _("run daemon"));
     struct arg_str* a_pidfile = arg_str0("p", "pidfile", _("<file>"), _("Check whether a process has created the file pidfile"));
     struct arg_lit* a_verbose = arg_litn("v", "verbose", 0, 2, _("-v - verbose, -vv - debug"));
@@ -117,20 +118,20 @@ int main(int argc, char** argv) {
     // Parse the command line as defined by argtable[]
     int nerrors = arg_parse(argc, argv, argtable);
 
-    svc.runAsDaemon = a_daemonize->count > 0;
+    cli.runAsDaemon = a_daemonize->count > 0;
     if (a_pidfile->count)
-        svc.pidfile = *a_pidfile->sval;
+        cli.pidfile = *a_pidfile->sval;
     else
-        svc.pidfile = "";
+        cli.pidfile = "";
 
-    svc.verbose = a_verbose->count;
+    cli.verbose = a_verbose->count;
 
     if (a_interface_n_port->count) {
-        splitAddress(svc.intf, svc.port, std::string(*a_interface_n_port->sval));
+        splitAddress(cli.intf, cli.port, std::string(*a_interface_n_port->sval));
     }
     else {
-        svc.intf = "*";
-        svc.port = 2024;
+        cli.intf = "*";
+        cli.port = 2024;
     }
 
     // special case: '--help' takes precedence over error reporting
@@ -155,21 +156,21 @@ int main(int argc, char** argv) {
     }
 #endif
 
-    if (svc.runAsDaemon) {
+    if (cli.runAsDaemon) {
         char workDir[PATH_MAX];
         std::string programPath = getcwd(workDir, PATH_MAX);
-        if (svc.verbose)
+        if (cli.verbose)
             std::cerr << MSG_LISTENER_DAEMON_RUN
             << "(" << programPath << "/" << programName << "). "
             << MSG_CHECK_SYSLOG << std::endl;
         OPEN_SYSLOG(programName)
-            Daemonize daemon(programName, programPath, run, stop, done, 0, svc.pidfile);
+            Daemonize daemon(programName, programPath, run, stop, done, 0, cli.pidfile);
         // CLOSESYSLOG()
     }
     else {
         setSignalHandler();
-        if (svc.verbose > 1)
-            std::cerr << svc.toString();
+        if (cli.verbose > 1)
+            std::cerr << cli.toString();
         run();
         done();
     }

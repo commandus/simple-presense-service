@@ -1,7 +1,6 @@
 #include "uv-client.h"
 
 #include <algorithm>
-#include <uv.h>
 
 #ifdef _MSC_VER
 #include <io.h>
@@ -11,6 +10,8 @@
 #else
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <iostream>
+
 #define SOCKET int
 #endif
 
@@ -19,10 +20,12 @@
 #include "uv-ip-helper.h"
 #include "err-msg.h"
 #include "mem-presence.h"
+#include "ip-address.h"
 
-#define DEF_KEEPALIVE_SECS 60
+#define DEF_TCP_KEEPALIVE_SECS 60
+#define DEF_PING_TIMEOUT_MS 120000
 
-#define WRITE_BUFFER_SIZE 1024
+#define WRITE_BUFFER_SIZE 128
 
 static void onUDPRead(
 	uv_udp_t *handle,
@@ -32,6 +35,7 @@ static void onUDPRead(
 	unsigned flags
 )
 {
+    UVClient* client = (UVClient*) handle->loop->data;
   	if (bytesRead < 0) {
     	if (bytesRead != UV_EOF) {
     	}
@@ -39,21 +43,26 @@ static void onUDPRead(
         if (bytesRead == 0) {
 
         } else {
-            unsigned char writeBuffer[WRITE_BUFFER_SIZE];
-            unsigned int sz = ((UVClient*) handle->loop->data)->presence->query(
-                addr, writeBuffer, sizeof(writeBuffer),
-                (const unsigned char *) buf->base, bytesRead);
-            if (sz > 0) {
-                uv_buf_t wrBuf = uv_buf_init((char *) writeBuffer, sz);
-                auto req = (uv_udp_send_t *) malloc(sizeof(uv_udp_send_t));
-				if (req) {
-					req->data = writeBuffer; // to free up if need it
-					uv_udp_send(req, handle, &wrBuf, 1, addr,
-						[] (uv_udp_send_t* req, int status) {
-							if (req)
-								free(req);
-					});
-				}
+            if (client->verbose > 1) {
+                std::cout << "Read " << bytesRead << " bytes" << std::endl;
+            }
+            if (bytesRead == 32) {
+                unsigned char readBuffer[32];
+                unsigned int sz = client->presence->query(
+                        addr, readBuffer, sizeof(readBuffer),
+                        (const unsigned char *) buf->base, bytesRead);
+                if (sz > 0) {
+                    uv_buf_t wrBuf = uv_buf_init((char *) readBuffer, sz);
+                    auto req = (uv_udp_send_t *) malloc(sizeof(uv_udp_send_t));
+                    if (req) {
+                        req->data = readBuffer; // to free up if need it
+                        uv_udp_send(req, handle, &wrBuf, 1, addr,
+                                    [](uv_udp_send_t *req, int status) {
+                                        if (req)
+                                            free(req);
+                                    });
+                    }
+                }
             }
         }
     }
@@ -111,7 +120,7 @@ static void onConnect(
 	}
 	uv_tcp_t *client = allocClient();
 	uv_tcp_init(server->loop, client);
-    uv_tcp_keepalive(client, 1, DEF_KEEPALIVE_SECS);
+    uv_tcp_keepalive(client, 1, DEF_TCP_KEEPALIVE_SECS);
 #ifdef ENABLE_DEBUG
     std::cerr << MSG_CONNECTED << std::endl;
 #endif
@@ -120,6 +129,33 @@ static void onConnect(
 	} else {
 		uv_close((uv_handle_t *)client, onCloseClient);
 	}
+}
+
+void onTimer(
+    uv_timer_t* timer
+) {
+
+    UVClient *c = (UVClient *) timer->data;
+    if (c) {
+        if (c->verbose > 1) {
+            std::cout << "Send ping to "
+                << sockaddr2string(&c->remoteAddress)
+                << std::endl;
+        }
+        // Request <SRC-UID:16>[<DEST-UID:16>] = 16, 32 bytes
+        unsigned int sz = 16;
+        unsigned char writeBuffer[16];
+        uv_buf_t wrBuf = uv_buf_init((char *) writeBuffer, sz);
+        auto req = (uv_udp_send_t *) malloc(sizeof(uv_udp_send_t));
+        if (req) {
+            req->data = writeBuffer; // to free up if need it
+            uv_udp_send(req, &c->udpSocket, &wrBuf, 1, &c->remoteAddress,
+                [] (uv_udp_send_t* req, int status) {
+                    if (req)
+                        free(req);
+                });
+        }
+    }
 }
 
 /**
@@ -156,6 +192,14 @@ void UVClient::stop()
 	}
 }
 
+void UVClient::setRemoteAddress(
+    const std::string &aAddress,
+    uint16_t aPort
+)
+{
+    string2sockaddr(&remoteAddress, aAddress, aPort);
+}
+
 void UVClient::setAddress(
     const std::string &host,
     uint16_t port
@@ -181,10 +225,17 @@ void UVClient::setAddress(
 int UVClient::run()
 {
 	auto *loop = (uv_loop_t *) uv;
+
+    // timer
+    uv_timer_t timer;
+    uv_timer_init(loop, &timer);
+    timer.data = this;
+    uv_timer_start(&timer, (uv_timer_cb) &onTimer, 0, DEF_PING_TIMEOUT_MS);
+
 	// TCP
 	uv_tcp_t tcpSocket;
 	uv_tcp_init(loop, &tcpSocket);
-    uv_tcp_keepalive(&tcpSocket, 1, DEF_KEEPALIVE_SECS);
+    uv_tcp_keepalive(&tcpSocket, 1, DEF_TCP_KEEPALIVE_SECS);
 	uv_tcp_bind(&tcpSocket, (const struct sockaddr *)&servaddr, 0);
 	int r = uv_listen((uv_stream_t *) &tcpSocket, 128, onConnect);
 	if (r) {
@@ -192,11 +243,11 @@ int UVClient::run()
 		std::cerr << ERR_SOCKET_LISTEN << uv_strerror(r) << std::endl;
 #endif		
 		status = ERR_CODE_SOCKET_LISTEN;
+        uv_timer_stop(&timer);
 		return status;
 	}
 
 	// UDP
-	uv_udp_t udpSocket;
 	uv_udp_init(loop, &udpSocket);
 	r = uv_udp_bind(&udpSocket, (const struct sockaddr *)&servaddr, UV_UDP_REUSEADDR);
     if (r) {
@@ -204,6 +255,7 @@ int UVClient::run()
         std::cerr << ERR_SOCKET_BIND << uv_strerror(r) << std::endl;
 #endif
         status = ERR_CODE_SOCKET_BIND;
+        uv_timer_stop(&timer);
         return status;
     }
 	uv_udp_set_broadcast(&udpSocket, 1);
@@ -213,10 +265,12 @@ int UVClient::run()
 		std::cerr << ERR_SOCKET_LISTEN << uv_strerror(r) << std::endl;
 #endif
 		status = ERR_CODE_SOCKET_LISTEN;
+        uv_timer_stop(&timer);
 		return ERR_CODE_SOCKET_LISTEN;
 	}
 	status = CODE_OK;
 	uv_run(loop, UV_RUN_DEFAULT);
+    uv_timer_stop(&timer);
     return status;
 }
 
