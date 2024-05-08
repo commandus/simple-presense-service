@@ -36,6 +36,7 @@ static TDaemonRunner daemonStopRequest;
 static TDaemonRunner daemonDone;
 
 #define DEF_FD_LIMIT			(1024 * 10)
+const char *DEVNULL = "/dev/null";
 
 Daemonize::	Daemonize(
     const std::string &daemonName,
@@ -230,6 +231,10 @@ int Daemonize::init()
     for (x = sysconf(_SC_OPEN_MAX); x>0; x--)	{
         close(x);
     }
+	//reopen stdin, stdout, stderr
+    stdin = fopen(DEVNULL, "r");
+    stdout = fopen(DEVNULL, "w+");
+    stderr = fopen(DEVNULL, "w+");
 
     if (maxFileDescriptors > 0)
         setFdLimit(maxFileDescriptors);
