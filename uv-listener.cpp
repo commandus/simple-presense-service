@@ -42,7 +42,12 @@ static void onUDPRead(
     UVListener* listener = (UVListener*) handle->loop->data;
     if (!listener)
         return;
-  	if (bytesRead < 0) {
+    if (listener->verbose > 1) {
+        std::cout
+            << "Received " << bytesRead << " bytes" << std::endl;
+    }
+
+    if (bytesRead < 0) {
     	if (bytesRead != UV_EOF) {
     	}
   	} else {
