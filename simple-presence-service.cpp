@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
             << "(" << programPath << "/" << programName << "). "
             << MSG_CHECK_SYSLOG << std::endl;
         OPEN_SYSLOG(programName)
-        Daemonize daemon(programName, programPath, run, stop, done, 0, cli.pidfile);
+        Daemonize daemon(programName, programPath, run, stop, done, 0, cli.pidfile, false);
         // CLOSESYSLOG()
     }
     else {

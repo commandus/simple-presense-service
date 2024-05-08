@@ -45,9 +45,10 @@ Daemonize::	Daemonize(
     TDaemonRunner stopRequest, 				///< function to stop
     TDaemonRunner done,						///< function to clean after runner exit
     const int aMaxFileDescriptors,  		///< 0- default 1024
-    const std::string &aPidFileName     	///< if empty, /var/run/program_name.pid is used
+    const std::string &aPidFileName,     	///< if empty, /var/run/program_name.pid is used
+    const bool aCloseFileDescriptors
 )
-    : workingDirectory(aWorkingDirectory), maxFileDescriptors(aMaxFileDescriptors)
+    : workingDirectory(aWorkingDirectory), maxFileDescriptors(aMaxFileDescriptors), closeFileDescriptors(aCloseFileDescriptors)
 {
 	serviceName = daemonName;
 	if (aPidFileName.empty())
@@ -228,13 +229,18 @@ int Daemonize::init()
     x = chdir(workingDirectory.c_str());
 
     // Close all open file descriptors
-    for (x = sysconf(_SC_OPEN_MAX); x>0; x--)	{
-        close(x);
+    if (closeFileDescriptors) {
+        for (x = sysconf(_SC_OPEN_MAX); x>0; x--)	{
+            if (x > 2)
+                close(x);
+        }
+        // reopen stdin, stdout, stderr
+        /*
+        stdin = fopen(DEVNULL, "r");
+        stdout = fopen(DEVNULL, "w+");
+        stderr = fopen(DEVNULL, "w+");
+        */
     }
-	//reopen stdin, stdout, stderr
-    stdin = fopen(DEVNULL, "r");
-    stdout = fopen(DEVNULL, "w+");
-    stderr = fopen(DEVNULL, "w+");
 
     if (maxFileDescriptors > 0)
         setFdLimit(maxFileDescriptors);
