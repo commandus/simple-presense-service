@@ -87,6 +87,7 @@ void setSignalHandler()
 }
 
 void run() {
+
     cli.server.setAddress(cli.intf, cli.port);
     cli.server.verbose = cli.verbose;
     cli.retCode = cli.server.run();
@@ -155,7 +156,7 @@ int main(int argc, char** argv) {
         exit(r);
     }
 #endif
-
+    setSignalHandler();
     if (cli.runAsDaemon) {
         char workDir[PATH_MAX];
         std::string programPath = getcwd(workDir, PATH_MAX);
@@ -164,11 +165,10 @@ int main(int argc, char** argv) {
             << "(" << programPath << "/" << programName << "). "
             << MSG_CHECK_SYSLOG << std::endl;
         OPEN_SYSLOG(programName)
-            Daemonize daemon(programName, programPath, run, stop, done, 0, cli.pidfile);
+        Daemonize daemon(programName, programPath, run, stop, done, 0, cli.pidfile);
         // CLOSESYSLOG()
     }
     else {
-        setSignalHandler();
         if (cli.verbose > 1)
             std::cerr << cli.toString();
         run();

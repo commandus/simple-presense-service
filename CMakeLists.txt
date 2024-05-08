@@ -34,7 +34,6 @@ else()
 endif()
 find_package(LibUV)
 
-
 add_executable(simple-presence-service
 	simple-presence-service.cpp
 	uv-listener.cpp err-msg.cpp

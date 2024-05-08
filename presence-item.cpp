@@ -47,7 +47,7 @@ static unsigned char hex2char(
 
 UID::UID()
 {
-    memset(&data1, 16, 0);
+    memset(&data[0], 16, 0);
 }
 
 UID::UID(const char *s)
@@ -63,7 +63,7 @@ bool UID::parseString(
     int digitCount = 0;
     int bytes = 0;
     char a[2];
-    unsigned char *c = (unsigned char *) &data1;
+    unsigned char *c = &data[0];
     while (*p) {
         if (isHexChar(*p)) {
             digitCount++;
@@ -91,7 +91,7 @@ std::string UID::toString() const
 {
     std::stringstream ss;
     std::ios_base::fmtflags f(ss.flags());
-    unsigned char *c = (unsigned char *) &this->data1;
+    unsigned char *c = (unsigned char *) &this->data[0];
     ss << std::hex << std::setfill('0')
         << std::setw(2) << (int) c[0]
         << std::setw(2) << (int) c[1]
@@ -124,18 +124,17 @@ void UID::generateRandom()
     std::mt19937 rng(dev());
     std::uniform_int_distribution<std::mt19937::result_type> dist(0, UINT64_MAX);
 
-    long *r = (long *) &data1;
-    for (int i = 0; i < 4; i++) {
+    long *r = (long *) &data[0];
+    for (int i = 0; i < 2; i++) {
         r[i] = dist(rng);
     }
-    unsigned char *c = (unsigned char *) &this->data1;
 }
 
 bool UID::operator <(
     const UID &rhs
 ) const
 {
-    return memcmp(this, &rhs, sizeof(UID)) < 0;
+    return memcmp(this, &rhs, SIZE_UID) < 0;
 }
 
 UID& UID::operator =(
@@ -158,7 +157,7 @@ PresenceItem::PresenceItem(
 )
 	: modified(std::chrono::system_clock::now())
 {
-	memmove(&uid, aUid, sizeof(UID));
+	memmove(&uid, aUid, SIZE_UID);
 	memmove(&addr, aAddr, sizeof(struct sockaddr));
 }
 
@@ -167,8 +166,9 @@ PresenceItem::PresenceItem(
 )
     : modified(std::chrono::system_clock::now())
 {
-    memmove(&uid, buffer, sizeof(UID));
-    memmove(&addr, (char *) buffer + sizeof(UID), sizeof(struct sockaddr));
+    memmove(&uid, buffer, SIZE_UID);
+
+    memmove(&addr, (char *) buffer + SIZE_UID, sizeof(struct sockaddr));
 }
 
 PresenceItem::~PresenceItem() = default;

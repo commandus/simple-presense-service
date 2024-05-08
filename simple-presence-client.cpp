@@ -91,13 +91,13 @@ void run() {
     cli.retCode = cli.client.run();
     if (cli.retCode)
         std::cerr << ERR_MESSAGE << cli.retCode << ": "
-                  << appStrError(cli.retCode)
-                  << std::endl;
+            << appStrError(cli.retCode)
+            << std::endl;
 }
 
 int main(int argc, char** argv) {
     struct arg_str* a_uid = arg_str0(nullptr, nullptr, _("UUID"), _("cat /proc/sys/kernel/random/uuid"));
-    struct arg_str* a_interface_n_port = arg_str0("d", "dest", _("ipaddr:remotePort"), _("Default 127.0.0.1:202"));
+    struct arg_str* a_interface_n_port = arg_str0("a", "address", _("ipaddr:remotePort"), _("Default 127.0.0.1:2024"));
     struct arg_lit* a_daemonize = arg_lit0("d", "daemonize", _("run daemon"));
     struct arg_str* a_pidfile = arg_str0("p", "pidfile", _("<file>"), _("Check whether a process has created the file pidfile"));
     struct arg_lit* a_verbose = arg_litn("v", "verbose", 0, 2, _("-v - verbose, -vv - debug"));

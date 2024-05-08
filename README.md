@@ -178,16 +178,21 @@ Stop service first if already running:
 ```
 ssh lora.commandus.com
 cd ~/simple-presence-service
-pkill lora-ws
+pkill simple-presence-service
 ```
 
 #### Strip and deploy
 
 ```
 cd /home/andrei/src/simple-presence-service/build
-sudo chown andrei:andrei simple-presence-service
-strip simple-presence-service
-scp simple-presence-service andrei@lora.commandus.com:~/simple-presence-service/
+sudo chown andrei:andrei *
+strip simple-presence-client simple-presence-service
+scp simple-presence-client simple-presence-service andrei@lora.commandus.com:~/simple-presence-service/
+```
+
+Install dependencies:
+```
+sudo apt install libuv1
 ```
 
 #### Run service
@@ -195,4 +200,24 @@ scp simple-presence-service andrei@lora.commandus.com:~/simple-presence-service/
 ```
 cd ~/simple-presence-service
 ./simple-presence-service -d
+```
+
+or run as daemon using systemd.
+
+First copy scripts to the target host:
+
+```
+scp -r systemd/ andrei@lora.commandus.com:~/simple-presence-service/
+```
+
+then run copy.sh script:
+```
+ssh lora.commandus.com
+cd ~/simple-presence-service
+cd systemd
+sudo ./copy.sh
+
+sudo systemctl start simple-presence.service
+systemctl status simple-presence.service
+sudo systemctl daemon-reload
 ```

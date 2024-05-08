@@ -44,6 +44,12 @@ static void onUDPRead(
         if (bytesRead == 0) {
 
         } else {
+            if (client->verbose > 1) {
+                std::cout << "Received "
+                    << bytesRead << " bytes"
+                    << std::endl;
+            }
+
             if (bytesRead == 32) {
                 PresenceItem it(buf->base);
                 client->presence->put(it);
@@ -135,7 +141,7 @@ void onTimer(
         // Request <SRC-UID:16>[<DEST-UID:16>] = 16, 32 bytes
         unsigned int sz = 16;
         char writeBuffer[16];
-        memmove(&writeBuffer, &c->uid.data1, 16);
+        memmove(&writeBuffer, &c->uid.data[0], 16);
         uv_buf_t wrBuf = uv_buf_init((char *)  &writeBuffer, sz);
         auto req = (uv_udp_send_t *) malloc(sizeof(uv_udp_send_t));
         if (req) {

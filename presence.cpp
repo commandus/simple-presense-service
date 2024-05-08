@@ -17,9 +17,9 @@ unsigned int Presence::query(
     if (bufSize == 16) {
         // return source "external" address
         // pong source uid
-        memmove(retBuf, buf, sizeof(UID));
+        memmove(retBuf, buf, SIZE_UID);
         // return my address as visible for outside
-        memmove(retBuf + sizeof(UID), addr, sizeof(struct sockaddr));
+        memmove(retBuf + SIZE_UID, addr, sizeof(struct sockaddr));
         PresenceItem item((UID*)buf, addr);
         put(item);
         return 32;
@@ -29,13 +29,13 @@ unsigned int Presence::query(
         PresenceItem item((UID*)buf, addr);
         put(item);
         // pong dest uid
-        memmove(retBuf, buf + sizeof(UID), sizeof(UID));
+        memmove(retBuf, buf + SIZE_UID, SIZE_UID);
         // request dest by uid
-        memmove(&item.uid, buf + sizeof(UID), sizeof(UID));
+        memmove(&item.uid, buf + SIZE_UID, SIZE_UID);
         if (!get(item))
             return 0;
         // return address
-        memmove(retBuf + sizeof(UID), &item.addr, sizeof(struct sockaddr));
+        memmove(retBuf + SIZE_UID, &item.addr, sizeof(struct sockaddr));
         return 32;
     }
     return 0;
@@ -47,7 +47,7 @@ bool Presence::put(
 {
     if (bufSize == 32) {
         // update address
-        PresenceItem item((UID*) buf, (sockaddr *) (buf + sizeof(UID)));
+        PresenceItem item((UID*) buf, (sockaddr *) (buf + SIZE_UID));
         put(item);
         return true;
     }

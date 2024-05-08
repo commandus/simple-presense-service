@@ -19,10 +19,7 @@ typedef std::chrono::time_point<std::chrono::system_clock> TASK_TIME;
 
 class UID {
 public:
-    unsigned long data1;
-    unsigned short data2;
-    unsigned short data3;
-    unsigned char data4[8];
+    unsigned char data[16];
 
     UID();
     UID(const char *s);
@@ -32,6 +29,8 @@ public:
     std::string toString() const;
     void generateRandom();
 };
+
+#define SIZE_UID    16
 
 class PresenceItem {
 public:
