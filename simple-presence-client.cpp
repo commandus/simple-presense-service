@@ -33,12 +33,13 @@ public:
     UVClient client;
     std::string remoteAddress;
     uint16_t remotePort;
+    uint16_t localPort;
     bool runAsDaemon;
     std::string pidfile;
     int verbose;
     int32_t retCode;
     ClientDescriptorNParams()
-        : remotePort(2024), verbose(0), retCode(0),
+        : remotePort(2024), localPort(2025), verbose(0), retCode(0),
           runAsDaemon(false)
     {
 
@@ -48,7 +49,8 @@ public:
         std::stringstream ss;
         ss
             << _("UUID: ") << client.uid.toString() << " "
-            << _("Service: ") << remoteAddress << ":" << remotePort << ".\n";
+            << _("Service: ") << remoteAddress << ":" << remotePort
+            << _(" local port: ") << localPort << "\n";
         return ss.str();
     }
 };
@@ -84,7 +86,7 @@ void setSignalHandler()
 }
 
 void run() {
-    cli.client.setAddress("*", cli.remotePort + 1);
+    cli.client.setAddress("*", cli.localPort);
     cli.client.setRemoteAddress(cli.remoteAddress, cli.remotePort);
     cli.client.verbose = cli.verbose;
 
@@ -98,6 +100,7 @@ void run() {
 int main(int argc, char** argv) {
     struct arg_str* a_uid = arg_str0(nullptr, nullptr, _("UUID"), _("cat /proc/sys/kernel/random/uuid"));
     struct arg_str* a_interface_n_port = arg_str0("a", "address", _("ipaddr:remotePort"), _("Default 127.0.0.1:2024"));
+    struct arg_int* a_local_port = arg_int0("l", "local-port", _("<local port>"), _("Default 2025"));
     struct arg_lit* a_daemonize = arg_lit0("d", "daemonize", _("run daemon"));
     struct arg_str* a_pidfile = arg_str0("p", "pidfile", _("<file>"), _("Check whether a process has created the file pidfile"));
     struct arg_lit* a_verbose = arg_litn("v", "verbose", 0, 2, _("-v - verbose, -vv - debug"));
@@ -105,7 +108,7 @@ int main(int argc, char** argv) {
     struct arg_end* a_end = arg_end(20);
 
     void* argtable[] = {
-        a_interface_n_port,
+        a_interface_n_port, a_local_port,
         a_uid,
         a_verbose, a_daemonize, a_pidfile,
         a_help, a_end
@@ -133,6 +136,13 @@ int main(int argc, char** argv) {
     else {
         cli.remoteAddress = "127.0.0.1";
         cli.remotePort = 2024;
+    }
+
+    if (a_local_port->count) {
+        cli.localPort = *a_local_port->ival;
+    }
+    else {
+        cli.localPort = 2025;
     }
 
     if (a_uid->count)
